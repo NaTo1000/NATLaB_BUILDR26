@@ -1,0 +1,10 @@
+pub mod app_repair;
+pub mod xplatform_forge;
+pub mod boot_forge;
+pub mod ai_logo_studio;
+pub mod ai_assistant;
+pub mod cloud_sync;
+pub mod plugin_system;
+pub mod live_docs;
+pub mod overseer_cmds;
+pub mod core_cmds;
