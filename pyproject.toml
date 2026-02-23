@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "natlab-buildr26"
+version = "26.0.0"
+description = "NATLaB_BUILDR26 – High-precision cross-platform app builder and repair engine"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.9"
+dependencies = [
+    "click>=8.1",
+    "rich>=13.0",
+    "Pillow>=10.0",
+    "requests>=2.31",
+    "pyyaml>=6.0",
+    "packaging>=23.0",
+]
+
+[project.optional-dependencies]
+server = ["flask>=3.0"]
+dev    = ["pytest>=7.0", "pytest-cov>=4.0"]
+
+[project.scripts]
+natlab = "natlab.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
