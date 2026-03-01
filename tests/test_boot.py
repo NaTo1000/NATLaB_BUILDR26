@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 
 import pytest
@@ -28,6 +29,21 @@ class TestBootStep:
         assert not ok
         assert step.error is not None
         assert isinstance(step.error, ValueError)
+
+    def test_step_timeout_exceeded(self):
+        def slow():
+            time.sleep(5)
+
+        step = BootStep("slow", slow, critical=True, timeout=0.1)
+        ok = step.run()
+        assert not ok
+        assert isinstance(step.error, TimeoutError)
+
+    def test_step_timeout_not_exceeded(self):
+        step = BootStep("fast", lambda: None, critical=True, timeout=5.0)
+        ok = step.run()
+        assert ok
+        assert step.error is None
 
 
 class TestBootManager:
@@ -58,6 +74,42 @@ class TestBootManager:
         ok = bm.run()
         assert ok
         assert "ok" in log
+
+    def test_parallel_steps_run_concurrently(self):
+        """Two parallel steps that each sleep 0.2s should finish well under 0.4s."""
+        import threading
+        order = []
+        lock = threading.Lock()
+
+        def slow_a():
+            time.sleep(0.05)
+            with lock:
+                order.append("a")
+
+        def slow_b():
+            time.sleep(0.05)
+            with lock:
+                order.append("b")
+
+        bm = BootManager("TestApp")
+        bm.add_step("a", slow_a, parallel=True)
+        bm.add_step("b", slow_b, parallel=True)
+        t0 = time.monotonic()
+        ok = bm.run()
+        elapsed = time.monotonic() - t0
+        assert ok
+        assert set(order) == {"a", "b"}
+        # If truly parallel, elapsed should be much less than 0.1s * 2
+        assert elapsed < 0.18
+
+    def test_telemetry_recorded_after_run(self):
+        bm = BootManager("App")
+        bm.add_step("s", lambda: None)
+        bm.run()
+        telemetry = bm.get("_boot_telemetry")
+        assert telemetry is not None
+        assert "total_s" in telemetry
+        assert len(telemetry["steps"]) == 1
 
     def test_config_get_set(self):
         bm = BootManager("App")

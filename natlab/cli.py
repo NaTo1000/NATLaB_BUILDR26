@@ -115,6 +115,14 @@ def build(
         )
         if result.artefact:
             _print(f"  Artefact : {result.artefact}")
+        if result.step_timings and HAS_RICH:
+            from rich.table import Table as _Table
+            t = _Table(show_header=True, header_style="dim", box=None)
+            t.add_column("Step", style="dim")
+            t.add_column("Time (s)", justify="right", style="dim")
+            for step, dur in result.step_timings.items():
+                t.add_row(step, f"{dur:.3f}")
+            _console.print(t)
     else:
         _print_err("Build failed. See messages above.")
         sys.exit(1)

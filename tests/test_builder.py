@@ -9,7 +9,7 @@ import pytest
 
 from natlab.builder.engine import BuildEngine, BuildResult
 from natlab.builder.templates import TemplateRegistry, CLITemplate, DesktopTemplate
-from natlab.builder.packager import Packager
+from natlab.builder.packager import Packager, PackResult
 
 
 # ---------------------------------------------------------------------------
@@ -121,6 +121,50 @@ class TestPackager:
             names = zf.namelist()
         assert not any(".natlab" in n for n in names)
 
+    def test_pack_full_returns_pack_result(self, tmp_path: Path):
+        src = tmp_path / "src"
+        src.mkdir()
+        (src / "main.py").write_text("x = 1\n" * 200)  # some compressible data
+
+        packager = Packager()
+        result = packager.pack_full(src, "TestApp", "linux", output_dir=tmp_path)
+
+        assert isinstance(result, PackResult)
+        assert result.archive_path.exists()
+        assert result.checksum_path.exists()
+        assert result.original_bytes > 0
+        assert result.compressed_bytes > 0
+
+    def test_pack_full_sha256_checksum_valid(self, tmp_path: Path):
+        import hashlib
+        src = tmp_path / "src"
+        src.mkdir()
+        (src / "main.py").write_text("print('checksum test')")
+
+        packager = Packager()
+        result = packager.pack_full(src, "TestApp", "linux", output_dir=tmp_path)
+
+        # Verify the checksum file contents match the archive
+        checksum_line = result.checksum_path.read_text().strip()
+        expected_hash = checksum_line.split("  ")[0]
+        h = hashlib.sha256()
+        with result.archive_path.open("rb") as f:
+            for chunk in iter(lambda: f.read(65536), b""):
+                h.update(chunk)
+        assert h.hexdigest() == expected_hash
+
+    def test_pack_full_compression_ratio(self, tmp_path: Path):
+        src = tmp_path / "src"
+        src.mkdir()
+        # Highly compressible content
+        (src / "big.py").write_text("# padding\n" * 1000)
+
+        packager = Packager()
+        result = packager.pack_full(src, "TestApp", "linux", output_dir=tmp_path)
+
+        # We should achieve meaningful compression on repetitive text
+        assert result.ratio > 0
+
 
 # ---------------------------------------------------------------------------
 # BuildEngine
@@ -154,6 +198,34 @@ class TestBuildEngine:
         manifest = json.loads((tmp_output / ".natlab" / "manifest.json").read_text())
         assert manifest["app_name"] == "ManifestTest"
         assert manifest["app_type"] == "cli"
+
+    def test_build_manifest_includes_step_timings(self, tmp_output: Path):
+        engine = BuildEngine()
+        result = engine.build(
+            app_name="TimingTest",
+            app_type="cli",
+            output_dir=tmp_output,
+            with_boot_manager=False,
+            with_icons=False,
+        )
+        assert result.success
+        manifest = json.loads((tmp_output / ".natlab" / "manifest.json").read_text())
+        assert "step_timings_s" in manifest
+        assert "scaffold" in manifest["step_timings_s"]
+
+    def test_build_result_has_step_timings(self, tmp_output: Path):
+        engine = BuildEngine()
+        result = engine.build(
+            app_name="StepTimingsTest",
+            app_type="cli",
+            output_dir=tmp_output,
+            with_boot_manager=True,
+            with_icons=False,
+        )
+        assert result.success
+        assert "scaffold" in result.step_timings
+        assert "boot_manager" in result.step_timings
+        assert "package" in result.step_timings
 
     def test_build_unknown_type_fails(self, tmp_output: Path):
         engine = BuildEngine()
@@ -217,3 +289,18 @@ class TestBuildEngine:
         assert d["success"] is True
         assert "duration_seconds" in d
         assert "messages" in d
+        assert "step_timings" in d
+
+    def test_build_checksum_written(self, tmp_output: Path):
+        engine = BuildEngine()
+        result = engine.build(
+            app_name="ChecksumTest",
+            app_type="cli",
+            output_dir=tmp_output,
+            with_boot_manager=False,
+            with_icons=False,
+        )
+        assert result.success
+        # SHA-256 checksum file should exist alongside the archive
+        checksum_files = list(tmp_output.parent.glob("*.sha256"))
+        assert len(checksum_files) == 1

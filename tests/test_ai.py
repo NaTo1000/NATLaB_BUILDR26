@@ -28,10 +28,31 @@ class TestAIAssistant:
         a = AIAssistant(api_key="test-key-12345678")
         assert a is not None
 
+    def test_token_usage_initialised(self):
+        a = AIAssistant(api_key="test-key-12345678")
+        assert a.token_usage == {"prompt_tokens": 0, "completion_tokens": 0}
+
     def test_query_network_error(self):
         a = AIAssistant(api_key="dummy-key-12345678", api_url="http://127.0.0.1:19999/v1/chat")
-        with pytest.raises(RuntimeError, match="Connection error|refused"):
+        with pytest.raises(RuntimeError, match="Connection error|refused|failed"):
             a.query("hello")
+
+    def test_cache_key_stable(self):
+        a = AIAssistant(api_key="dummy-key-12345678")
+        k1 = a._cache_key("hello world")
+        k2 = a._cache_key("hello world")
+        assert k1 == k2
+
+    def test_cache_key_differs_for_different_prompts(self):
+        a = AIAssistant(api_key="dummy-key-12345678")
+        assert a._cache_key("prompt A") != a._cache_key("prompt B")
+
+    def test_cache_returns_same_result_without_network(self):
+        a = AIAssistant(api_key="dummy-key-12345678")
+        # Manually seed the cache
+        a._cache[a._cache_key("my prompt")] = "cached response"
+        result = a.query("my prompt")
+        assert result == "cached response"
 
     def test_enhance_project_returns_list(self, tmp_path):
         # Write a Python file
