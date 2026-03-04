@@ -12,12 +12,15 @@ Elite-level engine features
 * **Per-step timing** recorded and stored in the build manifest for
   performance diagnostics.
 * **Compression stats** from the packager surfaced in build messages.
+* **Input validation** – app names are sanitised before use, rejecting
+  dangerous characters and enforcing length limits.
 """
 from __future__ import annotations
 
 import concurrent.futures
 import json
 import os
+import re
 import sys
 import time
 from pathlib import Path
@@ -25,6 +28,36 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from natlab.builder.templates import TemplateRegistry
 from natlab.builder.packager import Packager
+
+
+# ---------------------------------------------------------------------------
+# Input validation
+# ---------------------------------------------------------------------------
+
+# Permitted pattern: letters, digits, spaces, hyphens, underscores, dots.
+_APP_NAME_RE = re.compile(r"^[A-Za-z0-9 _.-]+$")
+_APP_NAME_MAX_LEN = 128
+
+
+def validate_app_name(name: str) -> str:
+    """Validate and return a cleaned application name.
+
+    Raises :class:`ValueError` if the name is empty, too long, or contains
+    characters outside the permitted set.
+    """
+    name = name.strip()
+    if not name:
+        raise ValueError("App name must not be empty.")
+    if len(name) > _APP_NAME_MAX_LEN:
+        raise ValueError(
+            f"App name exceeds maximum length of {_APP_NAME_MAX_LEN} characters."
+        )
+    if not _APP_NAME_RE.match(name):
+        raise ValueError(
+            f"App name contains invalid characters: {name!r}. "
+            "Only letters, digits, spaces, hyphens, underscores, and dots are allowed."
+        )
+    return name
 
 
 # ---------------------------------------------------------------------------
@@ -136,17 +169,23 @@ class BuildEngine:
         messages: list[str] = []
         step_timings: Dict[str, float] = {}
 
-        if output_dir is None:
-            output_dir = Path.cwd() / "dist" / app_name
-
-        output_dir = Path(output_dir)
-        messages.append(f"NATLaB_BUILDR26 v{self.VERSION} – starting build")
-        messages.append(f"  app_name : {app_name}")
-        messages.append(f"  app_type : {app_type}")
-        messages.append(f"  platform : {platform}")
-        messages.append(f"  output   : {output_dir}")
+        if output_dir is not None:
+            output_dir = Path(output_dir)
 
         try:
+            # Validate inputs early
+            app_name = validate_app_name(app_name)
+
+            if output_dir is None:
+                output_dir = Path.cwd() / "dist" / app_name
+
+            output_dir = Path(output_dir)
+            messages.append(f"NATLaB_BUILDR26 v{self.VERSION} – starting build")
+            messages.append(f"  app_name : {app_name}")
+            messages.append(f"  app_type : {app_type}")
+            messages.append(f"  platform : {platform}")
+            messages.append(f"  output   : {output_dir}")
+
             # 1. Scaffold from template
             template = self._registry.get(app_type)
             messages.append(f"[1/5] Scaffolding template '{app_type}'")
@@ -236,7 +275,7 @@ class BuildEngine:
             messages.append(f"Build FAILED: {exc}")
             return BuildResult(
                 success=False,
-                output_dir=output_dir,
+                output_dir=output_dir or Path.cwd(),
                 duration_seconds=duration,
                 messages=messages,
                 step_timings=step_timings,
