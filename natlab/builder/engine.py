@@ -35,7 +35,7 @@ from natlab.builder.packager import Packager
 # ---------------------------------------------------------------------------
 
 # Permitted pattern: letters, digits, spaces, hyphens, underscores, dots.
-_APP_NAME_RE = re.compile(r"^[A-Za-z0-9 _\-\.]+$")
+_APP_NAME_RE = re.compile(r"^[A-Za-z0-9 _.-]+$")
 _APP_NAME_MAX_LEN = 128
 
 

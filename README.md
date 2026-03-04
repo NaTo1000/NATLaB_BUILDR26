@@ -461,11 +461,11 @@ python -m pytest tests/ --cov=natlab --cov-report=term-missing
 
 | Test File | Module Tested | Tests | Coverage Focus |
 |-----------|--------------|-------|---------------|
-| `tests/test_builder.py` | engine, templates, packager | 22 | Template scaffolding, build lifecycle, compression, checksums, input validation |
+| `tests/test_builder.py` | engine, templates, packager | 33 | Template scaffolding, build lifecycle, compression, checksums, input validation |
 | `tests/test_boot.py` | boot manager | 15 | Step execution, timeouts, parallel groups, telemetry, config loading |
 | `tests/test_ai.py` | AI assistant | 11 | Key masking, caching, network errors, project enhancement |
-| `tests/test_icon.py` | icon builder | 10 | Initials, hex colours, SVG fallback, Pillow rendering, manifest |
-| `tests/test_cli.py` | CLI | 9 | All commands via Click test runner |
+| `tests/test_icon.py` | icon builder | 13 | Initials, hex colours, SVG fallback, Pillow rendering, manifest |
+| `tests/test_cli.py` | CLI | 8 | All commands via Click test runner |
 
 **Total: 80 tests, 0 failures.**
 
