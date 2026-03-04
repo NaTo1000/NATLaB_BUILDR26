@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from natlab.builder.engine import BuildEngine, BuildResult
+from natlab.builder.engine import BuildEngine, BuildResult, validate_app_name
 from natlab.builder.templates import TemplateRegistry, CLITemplate, DesktopTemplate
 from natlab.builder.packager import Packager, PackResult
 
@@ -304,3 +304,53 @@ class TestBuildEngine:
         # SHA-256 checksum file should exist alongside the archive
         checksum_files = list(tmp_output.parent.glob("*.sha256"))
         assert len(checksum_files) == 1
+
+
+# ---------------------------------------------------------------------------
+# Input validation
+# ---------------------------------------------------------------------------
+
+class TestValidateAppName:
+    def test_valid_simple_name(self):
+        assert validate_app_name("MyApp") == "MyApp"
+
+    def test_valid_name_with_spaces(self):
+        assert validate_app_name("My Cool App") == "My Cool App"
+
+    def test_valid_name_with_hyphens_underscores(self):
+        assert validate_app_name("my-app_v2.0") == "my-app_v2.0"
+
+    def test_strips_whitespace(self):
+        assert validate_app_name("  MyApp  ") == "MyApp"
+
+    def test_empty_name_raises(self):
+        with pytest.raises(ValueError, match="must not be empty"):
+            validate_app_name("")
+
+    def test_whitespace_only_raises(self):
+        with pytest.raises(ValueError, match="must not be empty"):
+            validate_app_name("   ")
+
+    def test_too_long_name_raises(self):
+        with pytest.raises(ValueError, match="exceeds maximum length"):
+            validate_app_name("A" * 129)
+
+    def test_special_chars_rejected(self):
+        with pytest.raises(ValueError, match="invalid characters"):
+            validate_app_name("My{App}")
+
+    def test_shell_injection_rejected(self):
+        with pytest.raises(ValueError, match="invalid characters"):
+            validate_app_name("app; rm -rf /")
+
+    def test_build_engine_rejects_bad_name(self, tmp_path: Path):
+        engine = BuildEngine()
+        result = engine.build(
+            app_name="",
+            app_type="cli",
+            output_dir=tmp_path / "output",
+            with_boot_manager=False,
+            with_icons=False,
+        )
+        assert not result.success
+        assert any("empty" in m.lower() for m in result.messages)

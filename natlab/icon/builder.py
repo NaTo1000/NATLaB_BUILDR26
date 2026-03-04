@@ -253,5 +253,10 @@ class IconBuilder:
         hex_color = hex_color.lstrip("#")
         if len(hex_color) == 3:
             hex_color = "".join(c * 2 for c in hex_color)
+        if len(hex_color) != 6 or not all(c in "0123456789abcdefABCDEF" for c in hex_color):
+            raise ValueError(
+                f"Invalid hex color: '#{hex_color}'. "
+                "Expected a 3- or 6-digit hex string (e.g. '#FF0000' or '#F00')."
+            )
         r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
         return r, g, b

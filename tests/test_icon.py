@@ -33,6 +33,21 @@ class TestHexToRgb:
         ib = IconBuilder()
         assert ib._hex_to_rgb("#FFF") == (255, 255, 255)
 
+    def test_invalid_hex_raises(self):
+        ib = IconBuilder()
+        with pytest.raises(ValueError, match="Invalid hex color"):
+            ib._hex_to_rgb("#ZZZZZZ")
+
+    def test_wrong_length_raises(self):
+        ib = IconBuilder()
+        with pytest.raises(ValueError, match="Invalid hex color"):
+            ib._hex_to_rgb("#FF00")
+
+    def test_empty_raises(self):
+        ib = IconBuilder()
+        with pytest.raises(ValueError, match="Invalid hex color"):
+            ib._hex_to_rgb("")
+
 
 class TestIconBuilderSVGFallback:
     """Tests that work without Pillow installed."""
