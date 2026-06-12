@@ -158,7 +158,7 @@ impl ModuleRegistry {
 
     /// Load a module by ID, ensuring dependencies are loaded first.
     pub async fn load(&self, id: &str) -> Result<ModuleDescriptor> {
-        let lock = self.modules.read().await;
+        let mut lock = self.modules.write().await;
         let module = lock.get(id).ok_or_else(|| anyhow::anyhow!("Module '{}' not found", id))?;
 
         // Check that all dependencies are already loaded
@@ -174,9 +174,7 @@ impl ModuleRegistry {
                 ));
             }
         }
-        drop(lock);
 
-        let mut lock = self.modules.write().await;
         let module = lock.get_mut(id).ok_or_else(|| anyhow::anyhow!("Module '{}' not found", id))?;
         module.loaded = true;
         module.loaded_at = Some(Utc::now());

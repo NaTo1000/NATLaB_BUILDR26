@@ -52,9 +52,6 @@ pub async fn bootforge_create(
         return Err("Media label cannot be empty".into());
     }
 
-    let _start = std::time::Instant::now();
-    let _job_id = uuid::Uuid::new_v4().to_string();
-
     // Stub: In production this orchestrates mkisofs/xorriso/dd/wimlib as appropriate.
     Err("BootForge media creation is not yet implemented. This is a stub endpoint.".into())
 }
