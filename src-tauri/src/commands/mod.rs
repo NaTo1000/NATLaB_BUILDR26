@@ -8,3 +8,4 @@ pub mod plugin_system;
 pub mod live_docs;
 pub mod overseer_cmds;
 pub mod core_cmds;
+pub mod admin_cmds;
