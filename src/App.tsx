@@ -82,7 +82,7 @@ export default function App() {
                     {MODULE_ICONS[mod.id] ?? "📦"}
                   </span>
                   <span className="sidebar__item-label">{mod.name}</span>
-                  {!mod.loaded && (
+                  {mod.lazy && !mod.loaded && (
                     <span className="sidebar__lazy-badge" title="Lazy-loaded">
                       lazy
                     </span>
@@ -120,7 +120,7 @@ function ModulePlaceholder({ module }: { module: ModuleDescriptor | null }) {
       </h2>
       <p className="module-placeholder__meta">
         v{module.version} · {module.category} ·{" "}
-        {module.loaded ? "Loaded" : "Lazy-loaded"}
+        {module.loaded ? "Loaded" : module.lazy ? "Lazy-loaded" : "Not loaded"}
       </p>
       <p className="module-placeholder__hint">
         Module UI for <strong>{module.name}</strong> will be implemented here.

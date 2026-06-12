@@ -162,9 +162,19 @@ mod core_tests {
     #[tokio::test]
     async fn loading_a_module_marks_it_loaded() {
         let registry = ModuleRegistry::new();
+        // Must load core_engine first since app_repair depends on it
+        registry.load("core_engine").await.unwrap();
         let module = registry.load("app_repair").await.unwrap();
         assert!(module.loaded);
         assert!(module.loaded_at.is_some());
+    }
+
+    #[tokio::test]
+    async fn loading_module_without_dependency_fails() {
+        let registry = ModuleRegistry::new();
+        // app_repair depends on core_engine, which is not loaded
+        let result = registry.load("app_repair").await;
+        assert!(result.is_err());
     }
 
     #[tokio::test]

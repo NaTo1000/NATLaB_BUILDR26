@@ -50,7 +50,7 @@ describe("LazyLoader", () => {
     );
   });
 
-  it("ignores duplicate registrations", () => {
+  it("ignores duplicate registrations and preserves the original factory", async () => {
     const factory1 = vi.fn().mockResolvedValue("first");
     const factory2 = vi.fn().mockResolvedValue("second");
     loader.register("mod_d", factory1);
@@ -58,6 +58,11 @@ describe("LazyLoader", () => {
 
     // factory1 should be used, factory2 should never be called.
     expect(loader.registeredIds().filter((id) => id === "mod_d").length).toBe(1);
+
+    const instance = await loader.load<string>("mod_d");
+    expect(instance).toBe("first");
+    expect(factory1).toHaveBeenCalledOnce();
+    expect(factory2).not.toHaveBeenCalled();
   });
 
   it("returns all registered IDs", () => {

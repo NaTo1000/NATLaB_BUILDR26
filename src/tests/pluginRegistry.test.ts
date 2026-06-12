@@ -40,13 +40,15 @@ describe("PluginRegistry", () => {
     );
   });
 
-  it("enables a plugin and calls the onEnable hook", async () => {
+  it("enables a plugin and calls the onLoad and onEnable hooks", async () => {
+    const onLoad = vi.fn().mockResolvedValue(undefined);
     const onEnable = vi.fn().mockResolvedValue(undefined);
-    registry.register(makeManifest("plugin-c"), { onEnable });
+    registry.register(makeManifest("plugin-c"), { onLoad, onEnable });
     await registry.enable("plugin-c");
 
     const plugins = registry.list();
     expect(plugins.find((p) => p.manifest.id === "plugin-c")!.status).toBe("loaded");
+    expect(onLoad).toHaveBeenCalledOnce();
     expect(onEnable).toHaveBeenCalledOnce();
   });
 

@@ -52,20 +52,11 @@ pub async fn bootforge_create(
         return Err("Media label cannot be empty".into());
     }
 
-    let start = std::time::Instant::now();
-    let job_id = uuid::Uuid::new_v4().to_string();
+    let _start = std::time::Instant::now();
+    let _job_id = uuid::Uuid::new_v4().to_string();
 
     // Stub: In production this orchestrates mkisofs/xorriso/dd/wimlib as appropriate.
-    Ok(BootForgeResult {
-        job_id,
-        output_path: request.output_path,
-        format: request.format,
-        size_bytes: 0,
-        sha256: String::new(),
-        duration_ms: start.elapsed().as_millis() as u64,
-        success: true,
-        error: None,
-    })
+    Err("BootForge media creation is not yet implemented. This is a stub endpoint.".into())
 }
 
 /// Verify the integrity of an existing bootable image.
@@ -81,5 +72,5 @@ pub async fn bootforge_verify(
 
     // Stub: In production computes SHA-256 and compares.
     let _ = expected_sha256;
-    Ok(true)
+    Err("BootForge image verification is not yet implemented. This is a stub endpoint.".into())
 }

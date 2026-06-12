@@ -33,15 +33,15 @@ pub struct PlatformBuildResult {
     pub warnings: Vec<String>,
 }
 
-fn parse_platform(s: &str) -> TargetPlatform {
+fn parse_platform(s: &str) -> Result<TargetPlatform, String> {
     match s.to_lowercase().as_str() {
-        "windows" => TargetPlatform::Windows,
-        "macos" | "mac" => TargetPlatform::MacOs,
-        "linux" => TargetPlatform::Linux,
-        "android" => TargetPlatform::Android,
-        "ios" => TargetPlatform::Ios,
-        "wasm" | "web" => TargetPlatform::Wasm,
-        _ => TargetPlatform::Linux,
+        "windows" => Ok(TargetPlatform::Windows),
+        "macos" | "mac" => Ok(TargetPlatform::MacOs),
+        "linux" => Ok(TargetPlatform::Linux),
+        "android" => Ok(TargetPlatform::Android),
+        "ios" => Ok(TargetPlatform::Ios),
+        "wasm" | "web" => Ok(TargetPlatform::Wasm),
+        _ => Err(format!("Unknown platform: '{}'. Supported: windows, macos, linux, android, ios, wasm", s)),
     }
 }
 
@@ -63,25 +63,38 @@ pub async fn forge_build(
     let mut platform_results: Vec<PlatformBuildResult> = Vec::new();
 
     for platform_str in &request.platforms {
-        let platform = parse_platform(platform_str);
+        let platform = parse_platform(platform_str)?;
+        let output_path = std::path::PathBuf::from(&request.project_path)
+            .join("dist")
+            .join(platform_str)
+            .to_string_lossy()
+            .to_string();
         let target = CompilerTarget {
             id: format!("{}-{}", request_id, platform_str),
             language: SupportedLanguage::Rust,
             source_path: request.project_path.clone(),
-            output_path: format!("{}/dist/{}", request.project_path, platform_str),
+            output_path,
             optimisation_level: request.optimisation,
             target_platforms: vec![platform],
         };
 
         match PolyglotCompiler::compile(target).await {
-            Ok(result) => platform_results.push(PlatformBuildResult {
-                platform: platform_str.clone(),
-                success: result.success,
-                artifact_path: result.output_path,
-                duration_ms: result.duration_ms,
-                errors: result.errors,
-                warnings: result.warnings,
-            }),
+            Ok(mut result) => {
+                if request.sign {
+                    result.warnings.push("Signing requested but not yet implemented".into());
+                }
+                if request.notarise {
+                    result.warnings.push("Notarisation requested but not yet implemented".into());
+                }
+                platform_results.push(PlatformBuildResult {
+                    platform: platform_str.clone(),
+                    success: result.success,
+                    artifact_path: result.output_path,
+                    duration_ms: result.duration_ms,
+                    errors: result.errors,
+                    warnings: result.warnings,
+                });
+            }
             Err(e) => platform_results.push(PlatformBuildResult {
                 platform: platform_str.clone(),
                 success: false,

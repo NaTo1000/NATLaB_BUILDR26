@@ -40,6 +40,7 @@ export class PluginRegistry {
     const plugin = this.getOrThrow(id);
     if (plugin.status === "loaded") return;
 
+    await plugin.hooks.onLoad?.();
     plugin.status = "loaded";
     plugin.loadedAt = new Date();
     await plugin.hooks.onEnable?.();

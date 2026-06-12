@@ -9,7 +9,7 @@ type ModuleFactory<T> = () => Promise<T>;
 interface LoadEntry<T> {
   factory: ModuleFactory<T>;
   instance: T | null;
-  loadedAt: number | null;
+  loadDurationMs: number | null;
   loading: boolean;
   error: string | null;
 }
@@ -24,7 +24,7 @@ export class LazyLoader {
     this.entries.set(id, {
       factory: factory as ModuleFactory<unknown>,
       instance: null,
-      loadedAt: null,
+      loadDurationMs: null,
       loading: false,
       error: null,
     });
@@ -46,17 +46,24 @@ export class LazyLoader {
           }
         }, 16);
       });
+      if (entry.error) {
+        throw new Error(entry.error);
+      }
+      if (entry.instance === null) {
+        throw new Error(`Module '${id}' failed to load`);
+      }
       return entry.instance as T;
     }
 
     entry.loading = true;
     entry.error = null;
+    const startTime = performance.now();
 
     try {
       // Notify backend to mark the module as loaded
       await invoke<ModuleDescriptor>("core_load_module", { moduleId: id });
       entry.instance = await entry.factory();
-      entry.loadedAt = performance.now();
+      entry.loadDurationMs = performance.now() - startTime;
       return entry.instance as T;
     } catch (err) {
       entry.error = String(err);
@@ -71,9 +78,9 @@ export class LazyLoader {
     return this.entries.get(id)?.instance !== null;
   }
 
-  /** Return load time in milliseconds, or null if not yet loaded. */
+  /** Return load duration in milliseconds, or null if not yet loaded. */
   loadTime(id: string): number | null {
-    return this.entries.get(id)?.loadedAt ?? null;
+    return this.entries.get(id)?.loadDurationMs ?? null;
   }
 
   /** Return all registered module IDs. */

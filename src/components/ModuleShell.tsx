@@ -2,7 +2,7 @@
 
 import React, { ReactNode } from "react";
 import clsx from "clsx";
-import type { ModuleDescriptor } from "../types/modules";
+import type { ModuleDescriptor, ModuleCategory } from "../types/modules";
 
 interface ModuleShellProps {
   descriptor: ModuleDescriptor;
@@ -12,7 +12,7 @@ interface ModuleShellProps {
   className?: string;
 }
 
-const CATEGORY_ICONS: Record<string, string> = {
+const CATEGORY_ICONS: Record<ModuleCategory | string, string> = {
   core_engine: "⚙",
   repair: "🔧",
   build: "🏗",
@@ -45,8 +45,10 @@ export function ModuleShell({
         <div className="module-shell__status">
           {descriptor.loaded ? (
             <span className="module-shell__badge module-shell__badge--loaded">Loaded</span>
-          ) : (
+          ) : descriptor.lazy ? (
             <span className="module-shell__badge module-shell__badge--lazy">Lazy</span>
+          ) : (
+            <span className="module-shell__badge module-shell__badge--pending">Not Loaded</span>
           )}
         </div>
       </header>
