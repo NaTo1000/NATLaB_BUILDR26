@@ -1,6 +1,6 @@
 // Module Shell — wraps each module with a consistent header and lazy-load state.
 
-import React, { ReactNode } from "react";
+import { ReactNode } from "react";
 import clsx from "clsx";
 import type { ModuleDescriptor, ModuleCategory } from "../types/modules";
 

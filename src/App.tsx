@@ -1,7 +1,7 @@
 // NATLaB BUILDR26 — App Shell
 // Routes between modules and displays the Overseer dashboard.
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { OverseerDashboard } from "./components/OverseerDashboard";
 import type { ModuleDescriptor } from "./types/modules";
